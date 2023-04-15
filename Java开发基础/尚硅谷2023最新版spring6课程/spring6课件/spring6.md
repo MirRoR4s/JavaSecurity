@@ -483,7 +483,7 @@ IoC 容器是 Spring 框架中最重要的核心组件之一，它贯穿了 Spri
 
 **Bean管理说的是：Bean对象的创建，以及Bean对象中属性的赋值（或者叫做Bean对象之间关系的维护）。**
 
-
+##### 3.1.2.1 基于set注入
 
 第一步 创建类，定义属性，生成属性的set方法
 
@@ -2709,6 +2709,10 @@ public class UserServiceImpl implements UserService {
 
 全注解开发就是不再使用spring配置文件了，写一个配置类来代替配置文件。
 
+在类上面加上@Configuration 表示这是一个配置类。
+
+  如何开启组件扫描呢？可以使用注解 @ComponentScan("xxx")，xxx是你要扫描的组件的路径。
+
 ```java
 package com.atguigu.spring6.config;
 
@@ -3428,6 +3432,7 @@ public class CalculatorImpl implements Calculator {
 ![images](images/spring6/img015.png)
 
 ```java
+//带日志的实现类
 public class CalculatorLogImpl implements Calculator {
     
     @Override
