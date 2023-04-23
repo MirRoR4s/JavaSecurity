@@ -1,3 +1,7 @@
+---
+typora-root-url: images
+---
+
 #   Spring6
 
 ![image-20221209110043449](images\spring6\image-20221209110043449.png)
