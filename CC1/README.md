@@ -1,4 +1,4 @@
-# Java 反序列化第 4 篇-CC1 国内版
+# Java反序列化CC1-国内版
 这一篇分析 Java 反序列化 CommonsCollections 的 CC1 链。
 
 ## 一. 前言
@@ -8,26 +8,23 @@
 
 也可以看看这篇 [foxlovesecurity](https://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/)
 
-## 二. 环境搭建
+ **环境搭建**
 
 - [JDK8u65](https://www.oracle.com/cn/java/technologies/javase/javase8-archive-downloads.html)
-- Maven 3.6.3(其余版本可以先试试，不行再降版本)
+- Maven 3.6.3
 
->jdk 版本要求 8u65，若用 jdk8u71，那么 CC 链的漏洞就被修掉了，所以无法进行漏洞测试。
-
->官网的版本管理有问题，点击 8u65 结果下的是 111。
-> 一番查找发现下载网站 [Oracle JDK 8u65 全平台安装包下载 - 码霸霸 (lupf.cn)](https://blog.lupf.cn/articles/2022/02/19/1645283454543.html)
+>jdk 版本要求 8u65，若用 jdk8u71，那么 CC 链的漏洞就被修掉了，所以无法进行漏洞测试。此外，官网的版本管理有问题，点击 8u65 结果下的是 111。一番查找发现下载网站 [Oracle JDK 8u65 全平台安装包下载 - 码霸霸 (lupf.cn)](https://blog.lupf.cn/articles/2022/02/19/1645283454543.html)
 
 - 我新建了一个名为 **jdk8u65** 的文件作为我的安装目录
 
-###  2.1 pom.xml 添加依赖
+**添加依赖**
 
-再接着，创建一个 IDEA 项目，选中 maven，并使用 jdk8u65。创建完毕之后在 pom.xml 中添加如下依赖
+创建 IDEA 项目，选中 maven，并使用 jdk8u65，之后在 pom.xml 中添加如下依赖：
 
 ![](https://i.imgur.com/qgzZQ3E.png)
 
 
-添加依赖之后右上角如果出现 pom 的图标，点击一下就好了。
+添加依赖之后右上角如果出现 pom 的图标，点击！
 
 ```xml
         <dependency>
@@ -49,13 +46,15 @@ import org.apache.commons.collections.functors.InvokerTransformer;
 
 ![](https://i.imgur.com/kgvNpBu.png)
 
-### 2.2 修改 sun 包
+**修改 sun 包**
 
 **修改sun包的目的是获取java一些内部类的源码。**
 
-首先在我们的 jdk8u65 文件夹有一个 src.zip，解压到当前目录得到src文件夹，之后去下面的链接下载 sun 包。
+首先在我们的 jdk8u65 文件夹有一个 src.zip，解压到当前目录得到src 文件夹，之后去下面的链接下载 sun 包。
 
 - [openJDK 8u65](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/rev/af660750b2f4)————去到这个下载链接并点击 zip 下载
+
+  > 注意访问链接时不要挂代理，否则会提示网站修复中，具体原因未知。
 
 
 下载完毕之后解压，会得到一个名为 `jdk-af660750b2f4` 的文件夹， 进入该文件夹的 `src/share/classes` 目录下，将 sun 文件夹复制到前面建立的 src 文件夹中。最后进入 idea，打开项目结构，将我们的 sun 文件夹添加到源路径即可。
@@ -65,9 +64,7 @@ import org.apache.commons.collections.functors.InvokerTransformer;
 
 ### 3.1 流程图
 
-### 3.1 反序列化攻击思路
-
-首先我们再次明确一下反序列化的攻击思路
+**审计思路：**
 
 - 入口类需要一个 `readObject` 方法
 - 结尾需要一个能够命令执行的方法
@@ -113,19 +110,15 @@ invokerTransformer.transform(runtime);
 
 ### 3.3 TransformedMap.checksetValue()
 
-如上所述，现在回到 `InvokerTransformer.transform()` 方法并寻找调用了这个方法的不同名函数。IDEA 可以帮我们快速做到这一点，只需要将光标停留在这个方法上并右键点击 find usages 即可。如果 find usages 有问题的话，可以先 `Ctrl+Alt+Shift+F7`，选择 `All place` 查询。最后的结果应如下图
+如上所述，现在回到 `InvokerTransformer.transform()` 方法并寻找调用了这个方法的不同名函数。
+
+> IDEA 可以帮我们快速做到这一点，只需要将光标停留在这个方法上并右键点击 find usages 即可。如果 find usages 有问题的话，可以先 `Ctrl+Alt+Shift+F7`，选择 `All place` 查询。最后的结果应如下图
 
 ![](https://i.imgur.com/FEPDKTu.png)
 
-
->这里同样有一个逐个翻看调用了 transform() 方法的那些类的操作，目的是为了找到可行的链子。我节省时间故直接给出答案。
-
-发现 `TransformedMap` 类调用了 `transform()` 方法
+发现 `TransformedMap#checkSetValue()` 调用了 `transform()` 方法，具体如下图所示：
 
 ![](https://i.imgur.com/i1tbTVH.png)
-
-
-具体地说是这个类中的 `checkSetValue()` 方法调用了 `transform()` 方法。我们右键选中然后 jump to source,源码如下：
 
 ![](https://i.imgur.com/uYfW631.png)
 
