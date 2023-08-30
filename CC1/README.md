@@ -1,9 +1,5 @@
-###### tags: `Java 反序列化`
-[TOC]
 # Java 反序列化第 4 篇-CC1 国内版
-<!--toc-->
 这一篇分析 Java 反序列化 CommonsCollections 的 CC1 链。
-<!--more-->
 
 ## 一. 前言
 感觉国内版的 CC1 和正版 CC1 相比，还是正版 CC1 优雅一些。
@@ -12,8 +8,6 @@
 
 也可以看看这篇 [foxlovesecurity](https://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/)
 
-
-
 ## 二. 环境搭建
 
 - [JDK8u65](https://www.oracle.com/cn/java/technologies/javase/javase8-archive-downloads.html)
@@ -21,12 +15,10 @@
 
 >jdk 版本要求 8u65，若用 jdk8u71，那么 CC 链的漏洞就被修掉了，所以无法进行漏洞测试。
 
-
-
 >官网的版本管理有问题，点击 8u65 结果下的是 111。
 > 一番查找发现下载网站 [Oracle JDK 8u65 全平台安装包下载 - 码霸霸 (lupf.cn)](https://blog.lupf.cn/articles/2022/02/19/1645283454543.html)
 
-我新建了一个名为 **jdk8u65** 的文件作为我的安装目录
+- 我新建了一个名为 **jdk8u65** 的文件作为我的安装目录
 
 ###  2.1 pom.xml 添加依赖
 
@@ -38,17 +30,6 @@
 添加依赖之后右上角如果出现 pom 的图标，点击一下就好了。
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>org.example</groupId>
-    <artifactId>CC1</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <dependencies>
-        <!-- https://mvnrepository.com/artifact/commons-collections/commons-collections -->
         <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
@@ -56,15 +37,6 @@
         </dependency>
 
     </dependencies>
-
-
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-</project>
 ```
 
 如何验证环境导入成功？我们 import CC 的包
@@ -77,43 +49,21 @@ import org.apache.commons.collections.functors.InvokerTransformer;
 
 ![](https://i.imgur.com/kgvNpBu.png)
 
-
 ### 2.2 修改 sun 包
 
-首先在我们的 jdk8u65 文件夹有一个 src.zip
+**修改sun包的目的是获取java一些内部类的源码。**
 
-![](https://i.imgur.com/4QczscE.png)
+首先在我们的 jdk8u65 文件夹有一个 src.zip，解压到当前目录得到src文件夹，之后去下面的链接下载 sun 包。
 
-
-我们在这个目录新建一个文件夹 src，并将 src.zip 的内容解压到 src，之后去下面的链接下载 sun 包。
-
-[openJDK 8u65](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/rev/af660750b2f4)————去到这个下载链接并点击 zip 下载
-
-![](https://i.imgur.com/TewD2Sk.png)
+- [openJDK 8u65](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/rev/af660750b2f4)————去到这个下载链接并点击 zip 下载
 
 
-下载完毕之后解压，会得到一个名为 `jdk-af660750b2f4` 的文件夹， 进入该文件夹的 `src/share/classes` 目录下，将 sun 文件夹复制到前面建立的 src 文件夹中
-
-![](https://i.imgur.com/ESgouxG.png)
-
-
-之后进入 idea，打开项目结构，将我们的 sun 文件夹添加到源路径
-
-![](https://i.imgur.com/0XaHxAo.png)
-
-
-![](https://i.imgur.com/Rx8Ey3W.png)
-
-
+下载完毕之后解压，会得到一个名为 `jdk-af660750b2f4` 的文件夹， 进入该文件夹的 `src/share/classes` 目录下，将 sun 文件夹复制到前面建立的 src 文件夹中。最后进入 idea，打开项目结构，将我们的 sun 文件夹添加到源路径即可。
 
 
 ## 三. TransformedMap 版 CC1 攻击链分析
 
 ### 3.1 流程图
-
-![](https://i.imgur.com/teGQw0j.png)
-
-
 
 ### 3.1 反序列化攻击思路
 
@@ -123,40 +73,16 @@ import org.apache.commons.collections.functors.InvokerTransformer;
 - 结尾需要一个能够命令执行的方法
 - 从入口类出发通过链子引导到结尾命令执行，故我们的攻击应从尾部出发去寻找头部。
 
-![](https://i.imgur.com/bL5wFN9.png)
-
-
-
 
 ### 3.2 InvokerTransformer.transform()
 
 接下来就正式开始复现 CC1 的链。
 
-首先在 idea 左侧项目找到 commons-collections-3.2.1，然后在集合模块找到 `Transformer.java` 文件。
+首先在 idea 左侧项目找到 commons-collections-3.2.1，然后在集合模块找到 `Transformer.java` 文件。具体是在 `org.apache.commons.collections` 包下（位置靠下，所以往下拉一拉才能看到）
 
-![](https://i.imgur.com/XZQ4ddb.png)
+这是一个接口，我们使用 `ctrl + alt + B` 查看实现了这个接口的类，偷懒直接定位到 `InvokerTransformer`。 
 
-
-具体是在 `org.apache.commons.collections` 包下(位置靠下，所以往下拉一拉才能看到)
-
-![](https://i.imgur.com/0ITK3KW.png)
-
->网上没有人说为什么直接去 Transformer.java ，我也没懂，暂时搁置。这或许就是挖掘 Java 漏洞所要做的事情吧：找到攻击链！
-
-![](https://i.imgur.com/Ai2jKhF.png)
-
-
-这是一个接口，我们使用 `ctrl + alt + B` 查看实现了这个接口的类。
-
-![](https://i.imgur.com/1tSU48I.png)
-
-
-我看的视频和文章都是人工翻找以上的类看看有没有能执行 exec 方法的，我就省略这一步了，直接定位到 `InvokerTransformer`。 
-
--  发现 `InvokerTransformer` 类的 `transform` 方法存在一个反射调用任意类，所以这可以作为我们链子的终点。
-
-![](https://i.imgur.com/0s5Annl.png)
-
+发现 `InvokerTransformer` 类的 `transform` 方法存在一个反射调用任意类，所以这可以作为我们链子的终点。
 
 **小练习**
 
@@ -164,12 +90,7 @@ import org.apache.commons.collections.functors.InvokerTransformer;
 
 思路就是实例化 InvokerTransformer 类并调用其 transform() 方法。
 
-首先关注到 `InvokerTransformer` 类的构造函数如下
-
-![](https://i.imgur.com/Thb6abJ.png)
-
-
-注意到构造函数是公有的，所以我们可以直接 new 出来。
+首先关注到 `InvokerTransformer` 类的构造函数是公有的，所以我们可以直接 new 出来。
 
 - 第一个参数是 String 类型的方法名
 - 第二个参数是一个 Class 数组类型，表示方法的参数类型
@@ -188,9 +109,7 @@ Runtime runtime = Runtime.getRuntime();
 invokerTransformer.transform(runtime);
 ```
 
-运行之后就可以弹出计算器，具体为什么可以弹计算器就不写了，可以自行分析一下。
-
-注意到我们最后一句代码是 `invokerTransformer.transform(runtime)` ，所以我们下一步的目标就是去找调用 `InvokerTransformer.transform()` 方法的不同名函数
+运行之后就可以弹出计算器，具体为什么可以弹计算器就不写了，可以自行分析一下。注意到我们最后一句代码是 `invokerTransformer.transform(runtime)` ，所以我们下一步的目标就是去找调用 `InvokerTransformer.transform()` 方法的不同名函数。
 
 ### 3.3 TransformedMap.checksetValue()
 
