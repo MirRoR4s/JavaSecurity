@@ -1,9 +1,5 @@
-###### tags: `Java 反序列化`
-[TOC]
-# Java 反序列化第 4 篇-CC1 国内版
-<!--toc-->
+# Java反序列化CC1-国内版
 这一篇分析 Java 反序列化 CommonsCollections 的 CC1 链。
-<!--more-->
 
 ## 一. 前言
 感觉国内版的 CC1 和正版 CC1 相比，还是正版 CC1 优雅一些。
@@ -12,43 +8,20 @@
 
 也可以看看这篇 [foxlovesecurity](https://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/)
 
-
-
-## 二. 环境搭建
+ **环境搭建**
 
 - [JDK8u65](https://www.oracle.com/cn/java/technologies/javase/javase8-archive-downloads.html)
-- Maven 3.6.3(其余版本可以先试试，不行再降版本)
+- Maven 3.6.3
 
->jdk 版本要求 8u65，若用 jdk8u71，那么 CC 链的漏洞就被修掉了，所以无法进行漏洞测试。
+>jdk 版本要求 8u65，若用 jdk8u71，那么 CC 链的漏洞就被修掉了，所以无法进行漏洞测试。此外，官网的版本管理有问题，点击 8u65 结果下的是 111。一番查找发现下载网站 [Oracle JDK 8u65 全平台安装包下载 - 码霸霸 (lupf.cn)](https://blog.lupf.cn/articles/2022/02/19/1645283454543.html)
 
+- 我新建了一个名为 **jdk8u65** 的文件作为我的安装目录
 
+**添加依赖**
 
->官网的版本管理有问题，点击 8u65 结果下的是 111。
-> 一番查找发现下载网站 [Oracle JDK 8u65 全平台安装包下载 - 码霸霸 (lupf.cn)](https://blog.lupf.cn/articles/2022/02/19/1645283454543.html)
-
-我新建了一个名为 **jdk8u65** 的文件作为我的安装目录
-
-###  2.1 pom.xml 添加依赖
-
-再接着，创建一个 IDEA 项目，选中 maven，并使用 jdk8u65。创建完毕之后在 pom.xml 中添加如下依赖
-
-![](https://i.imgur.com/qgzZQ3E.png)
-
-
-添加依赖之后右上角如果出现 pom 的图标，点击一下就好了。
+创建 IDEA 项目，选中 maven，并使用 jdk8u65，之后在 pom.xml 中添加如下依赖：
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>org.example</groupId>
-    <artifactId>CC1</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <dependencies>
-        <!-- https://mvnrepository.com/artifact/commons-collections/commons-collections -->
         <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
@@ -56,18 +29,13 @@
         </dependency>
 
     </dependencies>
-
-
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-</project>
 ```
 
-如何验证环境导入成功？我们 import CC 的包
+添加依赖之后右上角如果出现 pom 的图标，点击！
+
+**如何验证环境导入成功？**
+
+我们 import CC 的包
 
 ```Java
 import org.apache.commons.collections.functors.InvokerTransformer;
@@ -77,180 +45,74 @@ import org.apache.commons.collections.functors.InvokerTransformer;
 
 ![](https://i.imgur.com/kgvNpBu.png)
 
+**修改 sun 包，获取java一些内部类的源码。**
 
-### 2.2 修改 sun 包
+首先在我们的 jdk8u65 文件夹有一个 src.zip，解压到当前目录得到src 文件夹，之后去下面的链接下载 sun 包。
 
-首先在我们的 jdk8u65 文件夹有一个 src.zip
+- [openJDK 8u65](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/rev/af660750b2f4)————去到这个下载链接并点击 zip 下载
 
-![](https://i.imgur.com/4QczscE.png)
-
-
-我们在这个目录新建一个文件夹 src，并将 src.zip 的内容解压到 src，之后去下面的链接下载 sun 包。
-
-[openJDK 8u65](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/rev/af660750b2f4)————去到这个下载链接并点击 zip 下载
-
-![](https://i.imgur.com/TewD2Sk.png)
+  > 注意访问链接时不要挂代理，否则会提示网站修复中，具体原因未知。
 
 
-下载完毕之后解压，会得到一个名为 `jdk-af660750b2f4` 的文件夹， 进入该文件夹的 `src/share/classes` 目录下，将 sun 文件夹复制到前面建立的 src 文件夹中
-
-![](https://i.imgur.com/ESgouxG.png)
-
-
-之后进入 idea，打开项目结构，将我们的 sun 文件夹添加到源路径
-
-![](https://i.imgur.com/0XaHxAo.png)
-
-
-![](https://i.imgur.com/Rx8Ey3W.png)
-
-
+下载完毕之后解压，会得到一个名为 `jdk-af660750b2f4` 的文件夹， 进入该文件夹的 `src/share/classes` 目录下，将 sun 文件夹复制到前面建立的 src 文件夹中。最后进入 idea，打开项目结构，将我们的 sun 文件夹添加到源路径即可。
 
 
 ## 三. TransformedMap 版 CC1 攻击链分析
 
 ### 3.1 流程图
 
-![](https://i.imgur.com/teGQw0j.png)
-
-
-
-### 3.1 反序列化攻击思路
-
-首先我们再次明确一下反序列化的攻击思路
+**审计思路：**
 
 - 入口类需要一个 `readObject` 方法
 - 结尾需要一个能够命令执行的方法
 - 从入口类出发通过链子引导到结尾命令执行，故我们的攻击应从尾部出发去寻找头部。
-
-![](https://i.imgur.com/bL5wFN9.png)
-
-
 
 
 ### 3.2 InvokerTransformer.transform()
 
 接下来就正式开始复现 CC1 的链。
 
-首先在 idea 左侧项目找到 commons-collections-3.2.1，然后在集合模块找到 `Transformer.java` 文件。
+首先在 idea 左侧项目找到 commons-collections-3.2.1，然后在集合模块找到 `Transformer.java` 文件。具体是在 `org.apache.commons.collections` 包下（位置靠下，所以往下拉一拉才能看到）
 
-![](https://i.imgur.com/XZQ4ddb.png)
+这是一个接口，我们使用 `ctrl + alt + B` 查看实现了这个接口的类，偷懒直接定位到 `InvokerTransformer`。 
 
-
-具体是在 `org.apache.commons.collections` 包下(位置靠下，所以往下拉一拉才能看到)
-
-![](https://i.imgur.com/0ITK3KW.png)
-
->网上没有人说为什么直接去 Transformer.java ，我也没懂，暂时搁置。这或许就是挖掘 Java 漏洞所要做的事情吧：找到攻击链！
-
-![](https://i.imgur.com/Ai2jKhF.png)
+发现 `InvokerTransformer` 类的 `transform()` 方法存在一个反射调用任意类，所以这可以作为我们链子的终点。
 
 
-这是一个接口，我们使用 `ctrl + alt + B` 查看实现了这个接口的类。
-
-![](https://i.imgur.com/1tSU48I.png)
-
-
-我看的视频和文章都是人工翻找以上的类看看有没有能执行 exec 方法的，我就省略这一步了，直接定位到 `InvokerTransformer`。 
-
--  发现 `InvokerTransformer` 类的 `transform` 方法存在一个反射调用任意类，所以这可以作为我们链子的终点。
-
-![](https://i.imgur.com/0s5Annl.png)
-
-
-**小练习**
-
->既然这里有漏洞，我们不妨先利用反射弹一个计算器玩玩。
-
-思路就是实例化 InvokerTransformer 类并调用其 transform() 方法。
-
-首先关注到 `InvokerTransformer` 类的构造函数如下
-
-![](https://i.imgur.com/Thb6abJ.png)
-
-
-注意到构造函数是公有的，所以我们可以直接 new 出来。
-
-- 第一个参数是 String 类型的方法名
-- 第二个参数是一个 Class 数组类型，表示方法的参数类型
-- 第三个参数是一个 Object 数组类型，表示方法的参数。
-
-首先实例化一个 **InvokerTransformer** 对象，因为我们要执行命令，所以调用的方法当然是 **exec**。
-
-```java
-InvokerTransformer invokerTransformer = new InvokerTransformer("exec",new Class[]{String.class},new Object[]{"calc"});
-```
-
-之后用 Runtime 类的实例对象作为参数调用上述对象的 transfrom 方法
-
-```java
-Runtime runtime = Runtime.getRuntime();
-invokerTransformer.transform(runtime);
-```
-
-运行之后就可以弹出计算器，具体为什么可以弹计算器就不写了，可以自行分析一下。
-
-注意到我们最后一句代码是 `invokerTransformer.transform(runtime)` ，所以我们下一步的目标就是去找调用 `InvokerTransformer.transform()` 方法的不同名函数
 
 ### 3.3 TransformedMap.checksetValue()
 
-如上所述，现在回到 `InvokerTransformer.transform()` 方法并寻找调用了这个方法的不同名函数。IDEA 可以帮我们快速做到这一点，只需要将光标停留在这个方法上并右键点击 find usages 即可。如果 find usages 有问题的话，可以先 `Ctrl+Alt+Shift+F7`，选择 `All place` 查询。最后的结果应如下图
+如上所述，现在回到 `InvokerTransformer.transform()` 方法并寻找调用了这个方法的不同名函数。
 
-![](https://i.imgur.com/FEPDKTu.png)
+> IDEA 可以帮我们快速做到这一点，只需要将光标停留在这个方法上并右键点击 find usages 即可。如果 find usages 有问题的话，可以先 `Ctrl+Alt+Shift+F7`，选择 `All place` 查询。
 
-
->这里同样有一个逐个翻看调用了 transform() 方法的那些类的操作，目的是为了找到可行的链子。我节省时间故直接给出答案。
-
-发现 `TransformedMap` 类调用了 `transform()` 方法
-
-![](https://i.imgur.com/i1tbTVH.png)
-
-
-具体地说是这个类中的 `checkSetValue()` 方法调用了 `transform()` 方法。我们右键选中然后 jump to source,源码如下：
-
-![](https://i.imgur.com/uYfW631.png)
-
-我们肯定是想让上图的 `valueTransformer` 是一个 `InvokerTransformer` 类对象。所以接下来我们去看一看 `valueTransformer` 是什么东西，最终在 `TransformedMap` 的成员变量中发现了 `valueTransformer`
-
-![](https://i.imgur.com/K8N3Gjv.png)
-
-喔，原来这是一个 Transformer 接口。那我们的 InvokerTransformer 作为实现了这个接口的类肯定是可以和该变量兼容的。
-那我们就尝试寻找该变量是否存在可控点，最后在 TransformedMap 类的构造函数中发现可以设置这个变量的值，如下图：
-
-![](https://i.imgur.com/54XRKeh.png)
-
-
-- 因为 `TransformedMap` 的构造方法作用域是 `protected`，所以我们还需要去找一找谁调用了 `TransformedMap` 的构造方法。
-
-发现在 `TransformedMap.decorate()` 静态方法中创建了 `TransformedMap` 对象
-
-![](https://i.imgur.com/ZcfoGRE.png)
-
-那我们的思路就清晰了，通过调用 `TransformedMap.decorate()` 将 valueTransformer 赋值为 InvokerTransformer 类对象，并通过反射调用 `TransformedMap.checkSetValue()` 方法，传入的参数是一个 Runtime 类对象。这样一来就完成了命令执行弹出计算器的构造。
-代码如下：
+发现 `TransformedMap#checkSetValue(Object value)` 调用了 `transform()` 方法，具体代码是
 
 ```java
-public static void main(String[] args) throws Exception {
-        // 实例化一个 InvokerTransformer 对象
-        InvokerTransformer invokerTransformer = new InvokerTransformer("exec",new Class[]{String.class},new Object[]{"calc"});
-//
-        Runtime runtime = Runtime.getRuntime();
-
-        HashMap<String,String> hashMap = new HashMap<>();
-        
-        // decorate 方法的返回类型是 Map
-        Map transformedMap =  TransformedMap.decorate(hashMap,null,invokerTransformer);
-
-        // checkSetValue 方法是 protected，所以接下来要通过反射调用这个方法
-
-        Class c = TransformedMap.class;
-        Method method = c.getDeclaredMethod("checkSetValue",Object.class);
-        method.setAccessible(true);
-        method.invoke(transformedMap,runtime);
-
-
-    }
+valueTransformer.transform(value);
 ```
+
+ `valueTransformer` 是该类的成员变量，具体代码是：
+
+```java
+protectd final Transformer valueTransformer;
+```
+
+**在什么地方可以控制 valueTransformer？**，发现在构造函数 `Protected TransformedMap(Map map, Transformer keyTransformer, Transformer valueTransformer)` 中可以，具体代码是：
+
+```
+this.valueTransformer = valueTransformer;
+```
+
+因为 `TransformedMap` 的构造方法作用域是 `protected`，无法直接实例化。**所以在什么地方可以实例化 TransformedMap 呢？**
+
+发现在 `TransformedMap.decorate(Map map, Transformer keyTransformer, Transformer valueTransformer)` 静态方法中创建了 `TransformedMap` 对象，具体代码如下：
+
+```
+return new TransformedMap(map, keyTransformer, valueTransformer)
+```
+
+好的，现在已经找到可以实例化该类的点，继续往上寻找。
 
 
 ### 3.4 MapEntry.setValue()
