@@ -11,38 +11,61 @@
 
 ### 1.寻找链尾的 exec 方法
 
-- 漏洞点还是 `InvokerTransformer#transform()`，在该方法处进行 find usages 操作。
+- 漏洞点还是 `InvokerTransformer#transform()`
+
+```java
+            Class cls = input.getClass(); // input 是外部传入参数
+            Method method = cls.getMethod(iMethodName, iParamTypes);
+            return method.invoke(input, iArgs);
+```
+
+在该方法处进行 find usages 操作。然后发现`LazyMap#get()`调用了 `transform()` 方法！
+
+```java
+  Object value = factory.transform(key); // key 是外部传入的参数
+```
 
 > 上一篇说的是 TransformedMap 的链子，今天则是正版 CC1 链里面的 LazyMap 链子
-
-然后发现`LazyMap#get()`调用了 `transform()` 方法！
 
 
 ### 2.寻找链子
 
 `get()`中的 `factory` 调用了 transform() ，所以现在去找 `factory` 是什么。
 
-
 追踪发现，`factory` 是 LazyMap 的一个成员变量（protected），同时 LazyMap 的 `decorate()` 静态方法可以实例化一个 LazyMap 类对象，并且可以控制 `factory` 的值。
 
- 为什么关注decorate()方法呢？因为 LazyMap 的构造函数是 `private`，所以无法直接获取，而 `decorate()` 最后可以实例化一个`LazyMap` 对象。继续寻找谁调用了get()方法。
+> 这和 TransformedMap 是不是很相似呢？
 
-最终在 `AnnotationInvocationHandler.invoke()` 方法中找到了有一个地方调用了 `get()` 方法。 
+ 为什么关注 decorate()方法而不尝试直接实例化 LazyMap 呢？因为 LazyMap 的构造函数是 `private`，所以无法直接获取，而 `decorate()` 可以实例化一个`LazyMap` 对象。
+
+继续寻找谁调用了 get() 方法。最终在 **AnnotationInvocationHandler#invoke()** 方法中找到了有一个地方调用了 get() 方法。 
+
+```java
+        // Handle annotation member accessors
+        Object result = memberValues.get(member);
+        // memberValues 是成员变量
+        // member 外部可控
+```
 
 > 过于夸张，一共有2871个结果，不知道漏洞的发现者到底是如何找到这条链的。。。如果沒有找到 AnnotationInvocationHandler 的话，可以按住 ctrl+shift+r 开启全局搜索 AnnotationInvocationHandler
 
-同时这个类也非常好，它里面有 `readObject()` 方法，可以作为我们的入口类。
-
-最后的问题是怎样通过 `readObject()` 触发 `invoke()`？
+同时这个类也非常好，它里面有 `readObject()` 方法，可以作为我们的入口类。最后的问题是怎样通过 `readObject()` 触发 `invoke()`？
 
 需要触发 `invoke()` 方法，马上想到动态代理，一个类被动态代理了之后，当通过代理调用该类方法时，会自动调用对应的调用处理器的 `invoke()` 方法。
 
 **readObject()中有什么方法和动态代理相关吗？**
 
+答案是有的， `readObject()` 中调用了 `memberValues.entrySet()` 方法。也就是说，如果我们将 `memberValues` 的值改为动态代理类实例，那么当调用 entrySet()时就会自动执行调用处理器的 `invoke()` 方法了，这样就完成了整条链子的调用。
 
- `readObject()` 中调用了 `memberValues.entrySet()` 方法。也就是说，如果我们将 `memberValues` 的值改为动态代理类实例，那么当调用entrySet()时就会自动执行调用处理器的 `invoke()` 方法了，这样就完成了整条链子的调用。
+```java
+for (Map.Entry<String, Object> memberValue : memberValues.entrySet())
+```
 
-**最终的 exp 如下，建议反复观摩学习🤭**
+> 利用 memberValues 是因为该参数外部可控。
+
+最后是进行 exp 的编写了，具体咋编写的就不阐述了，希望读者自行跟踪分析出来。
+
+**最终的 exp 如下：**
 
 ```java
 package org.example;
