@@ -10,23 +10,21 @@
 
 使用IDEA构建项目时，为了方便，建议新建一个名为 CCChain 的项目，然后在该项目下创建各个子模块，分别使用独立的 pom.xml。
 
-
 ### 推荐阅读
-- [ysoserial](https://github.com/frohoff/ysoserial/tree/master/src/main/java/ysoserial/payloads)
-- https://paper.seebug.org/1242/
-- 芜风师傅
 
-### 我的总结
+1. p 神 java 安全漫谈
 
+通俗易懂，后面才发现的宝藏。不得不说，p 神在文笔这一块是安全圈顶尖的！
 
-1. CC1
-2. [CC2](https://hackmd.io/JglcYCjRTwebMhUG3aTjPg)
+2. [ysoserial](https://github.com/frohoff/ysoserial/tree/master/src/main/java/ysoserial/payloads)
 
+看看 yso 是如何编写 payload 的，学习人家的写法。
 
-### CC6
+3. https://paper.seebug.org/1242/
 
-以下是参考文章：
+这篇文章是对 CC 链子的一个梳理，逻辑清晰，特别是对 writeObject() 也有涉及，提到了恶意数据序列化时的一些细节。
 
-- [自我总结](https://hackmd.io/V95WvieLQZG60b4MDc_8nw)
-- [芜风师傅](https://drun1baby.top/2022/06/11/Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96Commons-Collections%E7%AF%8703-CC6%E9%93%BE/)
-- [yso官方](https://github.com/frohoff/ysoserial/blob/master/src/main/java/ysoserial/payloads/CommonsCollections6.java)
+4. 芜风师傅
+
+我的启蒙，但是现在想来对于新手来说，未免说的太细了，学起来有些不知所措的感觉。
+

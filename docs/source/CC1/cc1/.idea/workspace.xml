@@ -5,9 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="62ed2887-6921-4f2f-bbb6-2e1a22026ce2" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../CC1_Yso/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../CC1_Yso/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../RMI/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../RMI/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +31,9 @@
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
+    "project.structure.last.edited": "项目",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -44,6 +46,7 @@
       <option name="presentableId" value="Default" />
       <updated>1693487155435</updated>
       <workItem from="1693487156442" duration="3286000" />
+      <workItem from="1693612432013" duration="365000" />
     </task>
     <servers />
   </component>
