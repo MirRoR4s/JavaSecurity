@@ -1,6 +1,6 @@
 package top.mirror4s;
 import java.rmi.Naming;
-import java.util.ArrayList
+import java.util.ArrayList;
 import java.io.Serializable;
 import java.util.List;
 

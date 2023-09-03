@@ -1,4 +1,4 @@
-package org.example;
+package example;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 public class RemoteServer {
